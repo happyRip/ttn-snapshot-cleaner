@@ -1,16 +1,15 @@
 package cmd
 
 import (
-	"context"
 	"os"
 
 	"github.com/spf13/cobra"
 	"go.thethings.network/lorawan-stack/v3/pkg/log"
+	"go.thethings.network/lorawan-stack/v3/pkg/rpcmiddleware/rpclog"
 )
 
 var (
 	logger  *log.Logger
-	ctx     context.Context
 	rootCmd = &cobra.Command{
 		Use:   "ttn-snapshot-cleaner",
 		Short: "Cleanup old snapshots",
@@ -26,10 +25,11 @@ var (
 				return err
 			}
 			logger := log.NewLogger(logHandler, log.WithLevel(logLevel))
-			ctx := log.NewContext(context.Background(), logger)
+			rpclog.ReplaceGrpcLogger(logger)
 			return nil
 		},
 	}
+	dryRun bool
 )
 
 func Execute() int {
@@ -42,4 +42,9 @@ func Execute() int {
 
 func init() {
 	rootCmd.PersistentFlags().Bool("verbose", false, "Verbose output")
+	rootCmd.PersistentFlags().String("retention", os.Getenv("CLEANER_RETENTION"), "Snapshot retention in days. Snapshots past retentions will be removed when using a `delete` command.")
+	rootCmd.PersistentFlags().BoolVar(&dryRun, "dry-run", false, "When set no snapshots will be deleted.")
+	rootCmd.PersistentFlags().BoolVar(&format.json, "json", false, "Print output in json format")
+	rootCmd.PersistentFlags().BoolVar(&format.yaml, "yaml", false, "Print output in yaml format")
+	rootCmd.MarkFlagsMutuallyExclusive("json", "yaml")
 }
